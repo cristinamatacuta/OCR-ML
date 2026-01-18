@@ -1,0 +1,22 @@
+Chinese character detection
+Part 1: Data Preparation
+To make it easier for the script to retrieve the data, I first created paths to the folders where it was kept. Subsequently, for better organization, I built folders to keep the processed and masked images.
+Although it was suggested in the assignment description that we use the info.json file to see which files are in the training set, I decided to first create a dictionary with all of the annotations, and then use that dictionary to create a filter, if the image was on the disc and its annotation was present, save it, and ended up with 845 annotations whose images were actually stored on the disc, compared to 24290 initial annotations.
+Furthermore, I looked at the dataset's official page to see how the annotations appeared, as this was a critical step in understanding how to make the mask. As stated on the official website, it is preferable to use adjusted_box from the annotations, therefore I chose that option after determining that the bool is_chinese was True. Given that I used imagedraw.retangle, which requires the coordinates of the top-left and bottom-right corners, I needed to calculate the xmax and ymax. After drawing the masks, I had to resize the image and the masks to 512x512. I used bilinear for the image to preserve the smooth natural looking view of the image and try to avoid pixelation, and nearest for the mask because it was a black-and-white image, and tried to avoid nuances of gray.
+I then divided the data into three groups: training, validation, and testing, with a 70-15-15 ratio. To manage the data efficiently, I used a file-based dividing technique. Instead of duplicating image files in distinct directories, I created three text files, to serve as dataset indices.
+I created a new OCRSegmentationDataset class to handle data loading. Images and masks were transformed into PyTorch tensors.
+
+Part 2: the models
+For the first model, I chose a simple Encoder-Decoder CNN architecture since it is effective at recognizing patterns and features in images, such as Chinese characters, and image segmentation, and for the second model, I chose a UNet design. While the first model is a decent starting point for determining whether the machine can distinguish between Chinese letters and background noise, when the image is shrunk, much of the fine details are lost. The UNet addresses this issue using Skip Connections. Essentially, it takes the sharp elements at the beginning and "skips" them to the end of the model. This helps the model remember where the characters are, resulting in a cleaner final heatmap that better matches the original image.
+
+For the training, I set a variety of hyperparameters and saved the models that performed best.
+
+Part 3: testing and evaluation
+Because the model assigns a probability between 0 and 1 to each pixel, I converted these into binary segmentation masks using a threshold value: pixels with probabilities greater than or equal to the threshold are classified as primary focus, while all other pixels are classified as background. I initially used a 0.5 threshold, but after reviewing the results, I realized that number was too high, especially given that the Chinese characters were not a large part of the image and the majority of the image was background, so I decided to experiment with different numbers, and the best number appeared to be a 0.05 threshold based on the IoU metric.I used this metric for determining the threshold because it is a typical metric in computer vision.
+For evaluation metrics, I opted to use:
+Precision
+Recall 
+Intersection over union, which is the standard in computer vision, evaluates the overlap between a predicted bounding box and the true (ground truth).
+
+The last part of my code contains a visual comparison between the two models taken separately, the original image, the ground truth, as well as a visual representation containing both models to see where they agree. 
+By looking at the visual comparison together with the numbers, especially the ones from intersection over union, we can see that none of the models performed extremely well. However, both from the metrics and the images we can see that the UNet is a better model for this task as its predictions are  more spatially precise. But considering that the space taken by the Chinese characters in the image is really small, I could say that both models did a fairly good job. 
