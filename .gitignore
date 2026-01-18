@@ -1,0 +1,9 @@
+images/
+masks/
+images_raw/
+.ipynb_checkpoints/
+model1*.pth
+SimpleModel_lr*.pth
+UNet_lr*.pth
+
+
